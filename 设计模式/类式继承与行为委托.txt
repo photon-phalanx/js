@@ -1,0 +1,88 @@
+类的学习,类式继承与行为委托的学习 (你不知道的js)
+
+写在前面:继承的2种不当的方式,虽然看上去都能实现
+1.Bar.prototype = Foo.prototype
+此时，修改Bar的prototype也就是修改了Foo的
+2.Bar.prototype = new Foo();
+如果函数Foo有副作用,比如修改变量,添加日志,则做这个操作会带来负面影响
+
+关于覆盖原型链上存在属性的问题
+如果现在在原型链上有foo属性，现在做XX.foo = 'bar'时，分3种情况
+1.原型链上的foo为普通数据访问属性并且没有标记为writeable:true时，那就在XX上新建一个foo属性
+2.原型链上的foo为只读属性，那么无法修改或创建屏蔽属性，严格模式下报错
+3.原型链上的foo为setter,那就一定会调用setter,foo不会被添加到XX,也不会重新定义foo这个setter
+
+一.比较类式和行为委托两者的写法区别
+
+1.类式 (es6之前)
+function Foo(who) {
+    this.me = who;
+}
+
+Foo.prototype.identify = function () {
+    return "I am " + this.me;
+}
+
+function Bar(who) {
+    Foo.call(this, who);
+}
+
+Bar.prototype = Object.create(Foo.prototype);
+Bar.prototype.speak = function () {
+    console.log('Hello ' + this.identify() + '.');
+};
+
+var b1 = new Bar('b1');
+var b2 = new Bar('b2');
+b1.speak(); // Hello I am b1.
+b2.speak(); // Hello I am b2.
+
+2.es6写法
+class Foo {
+    constructor (who) {
+        this.me = who;
+    }
+
+    identify () {
+        return "I am " + this.me;
+    }
+}
+
+class Bar extends Foo {
+    constructor (who) {
+        super(who);
+    }
+
+    speak () {
+        console.log('Hello ' + this.identify() + '.');
+    }
+}
+
+var b1 = new Bar('b1');
+var b2 = new Bar('b2');
+b1.speak(); // Hello I am b1.
+b2.speak(); // Hello I am b2.
+
+3.行为委托
+var Foo = {
+    init (who) {
+        this.me = who;
+    },
+    identify () {
+        return "I am " + this.me;
+    }
+};
+
+var Bar = Object.create(Foo);
+Bar.speak = function () {
+    console.log('Hello ' + this.identify() + '.');
+};
+
+var b1 = Object.create(Bar);
+var b2 = Object.create(Bar);
+b1.init('b1');
+b2.init('b2');
+b1.speak();
+b2.speak();
+
+行为委托去掉了类的概念，不再操作prototype,不用call实现继承,全部都由对象实现

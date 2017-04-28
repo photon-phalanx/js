@@ -6,11 +6,12 @@
  * */
 
 // 这里用到了把函数看作对象的思想
+// 声明了抽象父类后，要加到VehicleFactory中(写到VehicleFactory这个对象里）
 function VehicleFactory(SubType, SuperType) {
-  if (typeof VehicleFactory[SubType] === 'function') {
+  if (typeof VehicleFactory[SuperType] === 'function') {
     function F() {}
     F.prototype = new VehicleFactory[SuperType]();
-    SubType.constructor = SubType;
+    SubType.constructor = SubType; // ？
     SubType.prototype = new F();
   }else {
     throw new Error('未创建该抽象类');
