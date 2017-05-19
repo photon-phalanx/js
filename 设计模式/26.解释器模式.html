@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>解释器模式</title>
+    <script>
+        /*
+        * 解释器模式：对于一种语言，给出其文法形式，并定义一种解释器来解析句子
+        * 当有一个语言需要解释执行，并且可以将该语言中的句子表示为一个抽象语法树的时候，
+        * 可以考虑使用解释器模式。
+        * 解释器模式速度较慢，适用于比较简单的语法格式
+        *
+        * */
+        
+        // demo使用书本的demo，根据一个元素和他的一个父元素，解析成XX>XX>XX的格式
+        
+        // 这个getSiblingName 只返回后缀部分，不包括自己本来的节点名字，节点元素名在后面的函数里拼如
+        function getSiblingName (node) {
+            if (node.previousSibling) {
+                var name = '';
+                var count = 1;
+                var nodeName = node.nodeName;
+                var sibling = node.previousSibling;
+                
+                while (sibling) {
+                    // 元素节点并且类型相同并且有名字
+                    if (sibling.nodeType === 1 && sibling.nodeType === node.nodeType && sibling.nodeName) {
+                        if (nodeName === sibling.nodeName) {
+                            count++;
+                            name += count;
+                        } else {
+                            count = 1;
+                            name += '|' + sibling.nodeName.toUpperCase();
+                        }
+                    }
+                    sibling = sibling.previousSibling;
+                }
+                return name;
+            } else {
+                // 不存在就返回空字符串了
+                return '';
+            }
+        }
+        
+        var Interpreter = (function () {
+            return function (node, wrap) {
+                var path = [];
+                wrap = wrap || document;
+                // 处理特殊情况
+                if (node === wrap) {
+                    if (wrap.nodeType === 1) {
+                        path.push(wrap.nodeName.toUpperCase());
+                    }
+                    return path;
+                } else if (node.parentNode !== wrap) {
+                    path = arguments.callee(node.parentNode, wrap);
+                } else {
+                    if (wrap.nodeType === 1) {
+                        path.push(wrap.nodeName.toUpperCase());
+                    }
+                }
+                var sublingsNames = getSiblingName(node);
+                if (node.nodeType === 1) {
+                    path.push(node.nodeName.toUpperCase() + sublingsNames);
+                }
+                return path;
+            }
+        })();
+        window.onload = function () {
+            var path = Interpreter(document.getElementById('button'));
+            alert(path);
+        }
+    </script>
+</head>
+<body>
+<div class="wrap">
+    <div class="link-inner">
+        <a href="#">link</a>
+    </div>
+    <div class="button-inner">
+        <button id="button">text</button>
+    </div>
+</div>
+</body>
+</html>
