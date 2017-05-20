@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>委托模式</title>
+    <script>
+        /*
+        * 委托模式:多个对象接收并处理同一请求，他们将请求委托给另一个对象统一处理
+        * 委托模式有效的减少了资源的消耗，是非常常见的模式
+        *
+        * 同时，委托模式可以预言未来，我们可以事先在容器上定义事件处理，然后再向容器内插入东西
+        *
+        * 还有可以解决内存泄漏的问题（ie下计数器垃圾回收机制）
+        * 当一个标签不存在了，但是标签上还有事件的话，并不会被回收
+        * 所以把事件统一定义在父元素上，防止内部元素消失但没有释放的问题
+        * */
+
+        window.onload = function () {
+            var ul = document.getElementsByTagName('ul')[0];
+            ul.onclick = function (e) {
+                e = e || window.event;
+                var target = e.target || e.srcElement;
+                if(target.nodeName.toLowerCase() === 'li') {
+                    console.log(target.innerHTML);
+                }
+            }
+        }
+
+    </script>
+</head>
+<body>
+<div class="box">
+    <ul>
+        <li class="menu">1</li>
+        <li class="menu">2</li>
+        <li class="menu">3</li>
+        <li class="menu">4</li>
+        <li class="menu">5</li>
+        <li class="menu">6</li>
+    </ul>
+</div>
+</body>
+</html>
