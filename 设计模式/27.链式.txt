@@ -1,0 +1,207 @@
+/**
+ * Created by Administrator on 2017/5/19.
+ */
+/*
+* 链式调用 jquery已经见多了，就不再多说
+* 自己实现一个链式也比较简单，每次把this返回
+* 以前阅读过jquery的init部分的源代码，但是并没有很能理解这样的写法
+* 现在 借此机会 再次回顾学习
+*
+* */
+
+从头开始 1.一个普通的对象
+function A() {}
+A.prototype = {
+  length: 2,
+  size: function () {
+    return this.length;
+  }
+};
+
+var a = new A();
+console.log(a.size()); // 2
+
+这个本来没什么好说的，但是这个A其实就是jquery的$
+在jquery中，我们用$()的方式取得想要的东西,$().size()这样是常见的写法
+但是，这里，A().size() 能运行吗？显然是不能的
+刚刚的测试已经写清楚了，要用new语句
+那么，怎么办，就把new放到里面去吧
+自己做不到，就找别人来做吧，相当于做一个返回new出来的对象的工厂
+
+
+function B() {}
+B.prototype = {
+  length: 2,
+  size: function () {
+    return this.length;
+  }
+};
+
+function A() {
+  return new B();
+}
+
+console.log(A().size());
+
+行了，现在长的有点像jquery了，但是这样变量好多呀，又是A又是B
+jquery就写的好看了点，把这个工厂挂到了属性上去
+
+function A() {
+  return A.fn;
+}
+A.fn = A.prototype = {
+  length: 2,
+  size: function () {
+    return this.length;
+  }
+};
+
+console.log(A().size());
+完美w
+
+才有鬼呢
+ jquery要的是取得的元素的集合，在一个数组里，你给我返回一个对象，这样真的好吗
+ 而且jquery有很多功能，这个最多也只能叫init吧
+ 好吧，那就继续，我们再给一个init
+
+
+function A(selector) {
+  return A.fn.init(selector);
+}
+A.fn = A.prototype = {
+  init:function (selector) {
+    return document.getElementById(selector);
+  },
+  length: 2,
+  size: function () {
+    return this.length;
+  }
+};
+
+这样的话调用A('test') 可以拿到了
+那这样就好了吗？问题更大了好不好- -
+这返回了这个元素了，就没有size之类了的方法了，好吧，再改
+
+
+function A(selector) {
+  return A.fn.init(selector);
+}
+A.fn = A.prototype = {
+  init:function (selector) {
+    this[0] = document.getElementById(selector);
+    this.length = 1;
+    return this;
+  },
+  length: 2,
+  size: function () {
+    return this.length;
+  }
+};
+
+好了，这样我们返回的是对象，这个对象有length，又有012的下标，是个伪数组了
+同时又有size的方法，哇，完美吧
+
+才有鬼……
+只要再调用一次A，问题就出来了
+          var test = A('test');
+          var test2 = A('test2');
+          console.log(test); // test2
+做这样的测试，发现
+新获取到的元素吧旧的覆盖掉了……
+好吧……再改……
+怎样能保持独立呢？
+如果每一次的init都是new出来的，那么彼此之间确实是独立的
+
+function A(selector) {
+  return new A.fn.init(selector);
+}
+A.fn = A.prototype = {
+  init:function (selector) {
+    this[0] = document.getElementById(selector);
+    this.length = 1;
+    return this;
+  },
+  length: 2,
+  size: function () {
+    return this.length;
+  }
+};
+
+这下总没问题了吧！！额，你连缀调用一下size()试试……size没了！
+为什么会没有，init是new出来的，new改变了this的指向，他的构造是A.fn.init(说是A.init也可以，因为init在prototype上面，可以自动找到)
+init本来就没有size方法啊，size是在fn上定义的不是吗
+这个怎么办？？
+有一个巧妙而简单的方法
+A.fn.init.prototype = A.fn;
+本来new后，init和fn没有什么大关系了
+但是这一下打通了隔阂，fn是init的原型！
+这挂上去了可真是太好了，因为查找原型链能查找到size这个方法！
+
+function A(selector) {
+  return new A.fn.init(selector);
+}
+A.fn = A.prototype = {
+  init:function (selector) {
+    this[0] = document.getElementById(selector);
+    this.length = 1;
+    return this;
+  },
+  length: 2,
+  size: function () {
+    return this.length;
+  }
+};
+A.fn.init.prototype = A.fn; // !important
+
+就这么一句，size就回来了！
+
+至此，逻辑部分全部完成了，剩下的就是扩展了，比如不只是有id，还可以有class等等
+这部分先不写了，最后来个小装饰
+
+function A(selector) {
+  return new A.fn.init(selector);
+}
+A.fn = A.prototype = {
+  constructor: A,
+  init:function (selector) {
+    this[0] = document.getElementById(selector);
+    this.length = 1;
+    return this;
+  },
+  length: 2,
+  size: function () {
+    return this.length;
+  },
+  push: Array.prototype.push,
+  sort: Array.prototype.sort,
+  splice: Array.prototype.splice
+};
+A.fn.init.prototype = A.fn; // !important
+
+首先constructor指回A，强化一下
+其次，添加数组的push，sort，splice方法
+当他是一个伪数组，并且有这些方法的时候，在控制台打印出来的就像是一个数组了
+不添加的话，并没有什么问题，只不过打印的是对象的样子
+
+最后 再看看extend这个方法
+如果只有一个参数，那就是对A或者A.fn的扩展
+多个参数表示是对第一个参数的扩展
+这个也不是很难实现
+
+A.extend = A.fn.extend = function () {
+  var i = 1;
+  var len = arguments.length;
+  var target = arguments[0];
+  if (i === len) {
+    target = this;
+    i--;
+  }
+  for(; i<len; i++) {
+    for(var j in arguments[i]) {
+    }
+    // 还是检查一下，不要把奇怪的东西都混进来了
+      if (arguments[i].hasOwnProperty(j))
+      target[j] = arguments[i][j];
+    }
+  }
+};
