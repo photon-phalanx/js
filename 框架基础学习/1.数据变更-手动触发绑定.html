@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>dataBinging</title>
+</head>
+<body>
+<input type="text" v-value="value" id="input"/>
+<span v-text="value" id="el"></span>
+<script>
+  let ele = [document.getElementById('el'), document.getElementById('input')];
+  let data = {
+    value: 'hello'
+  };
+  let directive = {
+    text: function (text) {
+      this.innerHTML = text;
+    },
+    value: function (value) {
+      this.setAttribute('value', value);
+    }
+  };
+  // 不考虑兼容性，只学习相关知识点
+  ele[1].addEventListener('keyup', function (e) {
+    ViewModelSet('value', e.target.value); // 一切的交互交给viewModel
+  });
+  scan();
+  setTimeout(function () {
+    // 让页面1秒后改变，实验用
+    ViewModelSet('value', 'helloWorld');
+  }, 1000)
+  function scan() {
+    for(let elem of ele) {
+      elem.directive = [];
+      for (let attr of elem.attributes) {
+        // 找到v-开头的元素，调用对应的directive
+        if (attr.nodeName.indexOf('v-') >= 0) {
+          directive[attr.nodeName.slice(2)].call(elem, data[attr.nodeValue]);
+          console.log('update');
+          elem.directive.push(attr.nodeName.slice(2));
+        }
+      }
+    }
+  }
+  function ViewModelSet(key, value) {
+    data[key] = value;
+    // 而这个viewModel手动触发刷新
+    scan();
+  }
+</script>
+</body>
+</html>

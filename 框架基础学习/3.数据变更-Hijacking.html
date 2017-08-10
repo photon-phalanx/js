@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>前端数据对象劫持</title>
+    <!--
+    真是高大上的名字，其实也就是get和set，defineProperty啦2333
+    -->
+</head>
+<body>
+<input type="text" v-value="value" id="input"/>
+<span v-text="value" id="el"></span>
+<script>
+  let ele = [document.getElementById('el'), document.getElementById('input')];
+  let data = {
+    value: 'hello'
+  };
+  let directive = {
+    text: function (text) {
+      this.innerHTML = text;
+    },
+    value: function (value) {
+      this.setAttribute('value', value);
+    }
+  };
+  scan();
+  defineGetAndSet(data, 'value');
+  // 不考虑兼容性，只学习相关知识点
+  ele[1].addEventListener('keyup', function (e) {
+    data.value = e.target.value;
+  });
+  setTimeout(function () {
+    // 让页面1秒后改变，实验用
+    data.value = 'hello World';
+  }, 1000)
+  function scan() {
+    for(let elem of ele) {
+      elem.directive = [];
+      for (let attr of elem.attributes) {
+        // 找到v-开头的元素，调用对应的directive
+        if (attr.nodeName.indexOf('v-') >= 0) {
+          directive[attr.nodeName.slice(2)].call(elem, data[attr.nodeValue]);
+          elem.directive.push(attr.nodeName.slice(2));
+        }
+      }
+    }
+  }
+  // defineProperty需要有一个bValue做中间变量，否则就递归狗带了
+  // MDN:https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty
+  // defubeProperty 不能同时有writable和value，但是可以弄个其他value值在对象里面……这里就把bValue放进去了
+  function defineGetAndSet(obj, propName) {
+    Object.defineProperty(obj, propName, {
+      bValue: '',
+      get: function () {
+        return this.bValue;
+      },
+      set: function (newValue) {
+        this.bValue = newValue;
+        scan();
+      }
+    })
+  }
+</script>
+</body>
+</html>
