@@ -13,7 +13,6 @@
  * */
 
 
-// 似乎有问题
 (function (F) {
   var moduleCache = {};
   function getUrl (moduleName) {
@@ -94,7 +93,7 @@
         })(i);
       }
     } else {
-      setModule(uri, [], callback);
+      setModule(url, [], callback);
     }
   }
 })(function () {

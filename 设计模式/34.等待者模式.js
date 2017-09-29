@@ -48,7 +48,7 @@ function Waiter () {
     reject: function () {
       this.rejected = true;
       if (!dfd.length) return;
-      // 失败清楚全部监控对象
+      // 失败清除全部监控对象
       dfd.splice(0);
       _exec(failArr);
     }
