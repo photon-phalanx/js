@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>脏检查</title>
+    <!--
+    脏检查的思想是 在viewModel对象的某个属性值法师变化时找到与这个属性值相关的所有元素，然后比较数据变化
+    如果变化进行directive调用，对这个元素进行重新扫描渲染
+
+    本测试只考虑一个value值，实际可能要用v-event:value = 'XX'，v-event:yy = 'zz'的形式，对某一个东西的变化调用一个event处理
+    -->
+</head>
+<body>
+<input type="text" v-event="valueChange" v-bind="value" id="input"/>
+<span v-event="text" v-bind="value" id="el"></span>
+<script>
+  let ele = [document.getElementById('el'), document.getElementById('input')];
+  let data = {
+    value: 'hello'
+  };
+  let directive = {
+    text: function (text) {
+      this.innerHTML = text;
+    },
+    valueChange: function (value) {
+      this.setAttribute('value', value);
+    }
+  };
+  scan(ele);
+  // 这里因为只bind了value，所以开始value的检查
+  $digest('value');
+  // 不考虑兼容性，只学习相关知识点
+  ele[1].addEventListener('keyup', function (e) {
+    data.value = e.target.value;
+    // 一旦改变了value，开始做脏检查
+    $digest(e.target.getAttribute('v-bind'));
+  });
+  setTimeout(function () {
+    data.value = 'hello world';
+    $digest('value');
+  }, 2000);
+  function scan() {
+    for (let elem of ele) {
+      elem.directive = [];
+    }
+  }
+  function $digest(value) {
+    // 拿到所有和value绑定的元素
+    let list = document.querySelectorAll('[v-bind=' + value + ']');
+    digest(list);
+  }
+  function digest(elems) {
+    for (let i = 0, len = elems.length; i < len; i++) {
+      let elem = elems[i];
+      for (let j = 0, lenl = elem.attributes.length; j < lenl; j++) {
+        let attr = elem.attributes[j];
+        // bind是作为通知的，当value改变时，通知所有bind该value的元素，但是做出反应的是v-event
+        // 因为实际要做的事情不一样，可能是innerHtml，可能是value，可能需要别的
+        if (attr.nodeName.indexOf('v-event') >= 0) {
+          let dataKey = elem.getAttribute('v-bind') || undefined;
+          // data[dataKey]是data[v-bind的属性]，也就是data里对应属性的值，其实也就是这次更新的属性的值
+          // elem.directive[attr.nodeValue] 是elem.directive缓存的上一次的值
+          // 当不一样的时候更新
+          if (elem.directive[attr.nodeValue] !== data[dataKey]) {
+            directive[attr.nodeValue].call(elem, data[dataKey]);
+            elem.directive[attr.nodeValue] = data[dataKey];
+          }
+        }
+      }
+    }
+  }
+</script>
+</body>
+</html>
